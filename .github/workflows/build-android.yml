@@ -17,26 +17,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check uploaded project archive
+      - name: Extract Android project
         run: |
-          test -f Shturm_Android.zip || { echo "::error::Shturm_Android.zip was not found in repository root"; exit 1; }
-          mkdir -p project
+          test -f Shturm_Android.zip || { echo "::error::Shturm_Android.zip not found in repository root"; exit 1; }
+          mkdir project
           unzip -q Shturm_Android.zip -d project
-          echo "Archive contents:"
-          find project -maxdepth 4 -type f | sort | head -200
-
-      - name: Locate Android project
-        id: locate
-        shell: bash
-        run: |
           SETTINGS="$(find project -type f \\( -name settings.gradle -o -name settings.gradle.kts \\) -print -quit)"
-          if [ -z "$SETTINGS" ]; then
-            echo "::error::No settings.gradle/settings.gradle.kts found. The uploaded ZIP may not contain the Android Studio project."
-            exit 1
-          fi
-          ROOT="$(dirname "$SETTINGS")"
-          echo "root=$ROOT" >> "$GITHUB_OUTPUT"
-          echo "Android project root: $ROOT"
+          test -n "$SETTINGS" || { echo "::error::No Android Gradle project found in ZIP"; exit 1; }
+          echo "PROJECT_ROOT=$(dirname "$SETTINGS")" >> "$GITHUB_ENV"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -44,28 +32,27 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build debug APK
-        shell: bash
-        working-directory: ${{ steps.locate.outputs.root }}
+      - name: Install Android SDK packages
         run: |
-          if [ -f ./gradlew ]; then
-            chmod +x ./gradlew
-            ./gradlew --no-daemon assembleDebug
-          else
-            echo "Gradle wrapper not found; using Gradle 8.7."
-            sudo apt-get update
-            sudo apt-get install -y gradle
-            gradle --no-daemon assembleDebug
-          fi
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build debug APK
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Shturm-Android-APK
-          path: |
-            ${{ steps.locate.outputs.root }}/**/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_ROOT }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
