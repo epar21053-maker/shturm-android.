@@ -42,7 +42,7 @@ jobs:
       - name: Configure Android SDK
         run: |
           SDK_ROOT=/usr/local/lib/android/sdk
-          SDKMANAGER="$SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           echo "Using Android SDK at: $SDK_ROOT"
           test -x "$SDKMANAGER" || { echo "::error::sdkmanager missing at $SDKMANAGER"; find /usr/local/lib/android -type f -name sdkmanager -print || true; exit 1; }
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
