@@ -22,7 +22,7 @@ jobs:
           test -f Shturm_Android.zip || { echo "::error::Shturm_Android.zip not found in repository root"; exit 1; }
           mkdir project
           unzip -q Shturm_Android.zip -d project
-          SETTINGS="$(find project -type f \\( -name settings.gradle -o -name settings.gradle.kts \\) -print -quit)"
+          SETTINGS="$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
           test -n "$SETTINGS" || { echo "::error::No Android Gradle project found in ZIP"; exit 1; }
           echo "PROJECT_ROOT=$(dirname "$SETTINGS")" >> "$GITHUB_ENV"
 
@@ -46,13 +46,13 @@ jobs:
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build debug APK
-        working-directory: ${{ env.PROJECT_ROOT }}
+        working-directory: \${{ env.PROJECT_ROOT }}
         run: gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Shturm-Android-APK
-          path: ${{ env.PROJECT_ROOT }}/app/build/outputs/apk/debug/app-debug.apk
+          path: \${{ env.PROJECT_ROOT }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
