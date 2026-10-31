@@ -22,7 +22,9 @@ jobs:
           test -f Shturm_Android.zip || { echo "::error::Shturm_Android.zip not found in repository root"; exit 1; }
           mkdir project
           unzip -q Shturm_Android.zip -d project
-          SETTINGS="$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)"
+          echo "Archive contents:"
+          find project -maxdepth 4 -type f | sort | head -200
+          SETTINGS="$(find project -type f \( -name settings.gradle -o -name settings.gradle.kts \) -not -path '*/.gradle/*' -print -quit)"
           test -n "$SETTINGS" || { echo "::error::No Android Gradle project found in ZIP"; exit 1; }
           echo "PROJECT_ROOT=$(dirname "$SETTINGS")" >> "$GITHUB_ENV"
 
@@ -37,13 +39,13 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
+      - name: Configure Android SDK
         run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "/usr/local/lib/android/sdk/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
+          yes | /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --licenses >/dev/null
+          /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build debug APK
         working-directory: \${{ env.PROJECT_ROOT }}
